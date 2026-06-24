@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Itinerary Reviewer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F5F4F0;
+      --surface: #FFFFFF;
+      --navy: #1A1A2E;
+      --blue: #3B6FD4;
+      --blue-light: #EBF0FC;
+      --text: #1A1A2E;
+      --muted: #6B7280;
+      --border: #E4E2DC;
+      --green: #16A34A;
+      --green-bg: #DCFCE7;
+      --yellow: #D97706;
+      --yellow-bg: #FEF3C7;
+      --red: #DC2626;
+      --red-bg: #FEE2E2;
+      --sky: #0284C7;
+      --sky-bg: #E0F2FE;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 16px 64px;
+    }
+
+    /* ── Header ── */
+    header {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 0 32px;
+      text-align: center;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: var(--navy);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .subtitle { color: var(--muted); margin-top: 6px; font-size: 15px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Input section ── */
+    .input-section {
+      max-width: 760px;
+      margin: 0 auto 28px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .tab-btn {
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all .15s;
+      margin-bottom: -1px;
+    }
+    .tab-btn.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+    }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    .tab-panel { display: none; padding: 24px; }
+    .tab-panel.active { display: block; }
+
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    input[type="url"], textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    input[type="url"]:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59,111,212,.12);
+    }
+    textarea { resize: vertical; min-height: 220px; line-height: 1.6; font-size: 13px; }
+
+    .url-hint { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .url-hint a { color: var(--blue); text-decoration: none; }
+
+    .fetch-btn {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: var(--blue-light);
+      color: var(--blue);
+      border: 1px solid #C7D8F8;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .fetch-btn:hover { background: #dce8fb; }
+    .fetch-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Analyze button */
+    .analyze-wrap {
+      padding: 0 24px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .analyze-btn {
+      padding: 11px 28px;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .analyze-btn:hover { opacity: .88; }
+    .analyze-btn:active { transform: scale(.98); }
+    .analyze-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    .loading .spinner { display: block; }
+    .loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      background: var(--red-bg);
+      color: var(--red);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── Results ── */
+    #results { max-width: 760px; margin: 0 auto; display: none; }
+    #results.visible { display: block; }
+
+    .results-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .trip-name { font-size: 22px; font-weight: 700; }
+    .clear-btn {
+      padding: 6px 14px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .clear-btn:hover { background: var(--border); }
+
+    /* Overall verdict banner */
+    .verdict-card {
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      background: var(--navy);
+      color: #fff;
+      border-radius: var(--radius);
+    }
+    .verdict-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; opacity: .6; text-transform: uppercase; margin-bottom: 6px; }
+    .verdict-text { font-size: 17px; font-weight: 500; line-height: 1.5; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    @media(max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
+
+    .mini-list-label { font-size: 11px; font-weight: 600; letter-spacing: .8px; opacity: .6; text-transform: uppercase; margin-bottom: 8px; }
+    .mini-list { list-style: none; }
+    .mini-list li { font-size: 13px; opacity: .85; padding: 3px 0 3px 16px; position: relative; line-height: 1.45; }
+    .mini-list li::before { content: '–'; position: absolute; left: 0; opacity: .5; }
+
+    /* Day cards */
+    .day-card { margin-bottom: 16px; overflow: hidden; }
+    .day-header {
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: background .15s;
+    }
+    .day-header:hover { background: #FAFAF8; }
+    .day-header.open { border-bottom-color: var(--border); }
+    .day-title { font-size: 15px; font-weight: 600; }
+    .day-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px; font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 99px;
+      letter-spacing: .3px;
+    }
+    .badge-ideal   { background: var(--green-bg);  color: var(--green); }
+    .badge-light   { background: var(--sky-bg);    color: var(--sky);   }
+    .badge-busy    { background: var(--yellow-bg); color: var(--yellow);}
+    .badge-overloaded { background: var(--red-bg); color: var(--red);   }
+    .badge-pace    { background: var(--blue-light); color: var(--blue); }
+
+    .chevron { transition: transform .2s; font-size: 14px; color: var(--muted); }
+    .day-header.open .chevron { transform: rotate(180deg); }
+
+    .day-body { padding: 20px; display: none; }
+    .day-body.open { display: block; }
+
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media(max-width: 520px) { .metrics-grid { grid-template-columns: 1fr; } }
+
+    .metric-box {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .metric-name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 8px; }
+    .stars { display: flex; gap: 3px; margin-bottom: 6px; }
+    .star { font-size: 15px; }
+    .star.filled { color: #FBBF24; }
+    .star.empty  { color: #D1D5DB; }
+    .metric-note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .activity-count-val { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+
+    .suggestions-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 8px; }
+    .suggestions-list { list-style: none; }
+    .suggestions-list li {
+      font-size: 13px;
+      padding: 9px 12px;
+      background: var(--blue-light);
+      border-left: 3px solid var(--blue);
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 6px;
+      color: #1e3a6e;
+      line-height: 1.5;
+    }
+
+    /* Top changes */
+    .changes-card { margin-bottom: 24px; }
+    .changes-header { padding: 16px 20px; font-size: 14px; font-weight: 600; border-bottom: 1px solid var(--border); }
+    .changes-body { padding: 16px 20px; }
+    .change-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .change-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .change-num {
+      min-width: 24px; height: 24px;
+      background: var(--navy);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .change-text { font-size: 14px; line-height: 1.5; }
+
+    /* Score summary bar */
+    .summary-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .summary-pill {
+      flex: 1; min-width: 100px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .summary-pill .sp-label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .summary-pill .sp-val { font-size: 22px; font-weight: 700; }
+    .summary-pill .sp-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">✈</div>
+    <h1>Itinerary Reviewer</h1>
+  </div>
+  <p class="subtitle">AI-powered pacing &amp; flow check for travel itineraries</p>
+</header>
+
+<div class="input-section card">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="sheets">Google Sheets URL</button>
+    <button class="tab-btn" data-tab="paste">Paste Itinerary</button>
+  </div>
+
+  <!-- Google Sheets tab -->
+  <div class="tab-panel active" id="tab-sheets">
+    <label for="sheets-url">Share link</label>
+    <input type="url" id="sheets-url" placeholder="https://docs.google.com/spreadsheets/d/…" />
+    <p class="url-hint">
+      Make sure the sheet is set to <strong>"Anyone with the link can view"</strong> before pasting the URL.
+    </p>
+    <button class="fetch-btn" id="fetch-btn">Load sheet →</button>
+    <div id="sheet-preview" style="margin-top:14px; display:none;">
+      <label>Preview (loaded)</label>
+      <textarea id="sheet-content" rows="8" readonly style="opacity:.7;"></textarea>
+    </div>
+  </div>
+
+  <!-- Paste tab -->
+  <div class="tab-panel" id="tab-paste">
+    <label for="paste-area">Itinerary text</label>
+    <textarea id="paste-area" placeholder="Paste your itinerary here — day headers, activities, times, locations…"></textarea>
+  </div>
+
+  <div class="analyze-wrap">
+    <button class="analyze-btn" id="analyze-btn">
+      <div class="spinner"></div>
+      <span class="btn-text">Analyze itinerary</span>
+    </button>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results">
+  <div class="results-header">
+    <div class="trip-name" id="trip-name"></div>
+    <button class="clear-btn" id="clear-btn">Start over</button>
+  </div>
+
+  <div class="verdict-card">
+    <div class="verdict-label">Overall Assessment</div>
+    <div class="verdict-text" id="verdict-text"></div>
+    <div class="two-col" id="strengths-changes">
+      <div>
+        <div class="mini-list-label">Strengths</div>
+        <ul class="mini-list" id="strengths-list"></ul>
+      </div>
+      <div>
+        <div class="mini-list-label">Top priorities</div>
+        <ul class="mini-list" id="changes-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-bar" id="summary-bar"></div>
+
+  <div id="days-container"></div>
+</div>
+
+<script>
+  // ── Tab switching ───────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Fetch Google Sheet ──────────────────────────────────────────────────────
+  document.getElementById('fetch-btn').addEventListener('click', async () => {
+    const url = document.getElementById('sheets-url').value.trim();
+    if (!url) return showError('Please enter a Google Sheets URL.');
+    clearError();
+
+    const btn = document.getElementById('fetch-btn');
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+
+    try {
+      const res = await fetch('/api/fetch-sheet?url=' + encodeURIComponent(url));
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to load sheet');
+      }
+      const csv = await res.text();
+      document.getElementById('sheet-content').value = csv;
+      document.getElementById('sheet-preview').style.display = 'block';
+      btn.textContent = '✓ Loaded — click Analyze';
+    } catch (err) {
+      showError(err.message);
+      btn.textContent = 'Load sheet →';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── Analyze ─────────────────────────────────────────────────────────────────
+  document.getElementById('analyze-btn').addEventListener('click', async () => {
+    const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+    let itinerary = '';
+
+    if (activeTab === 'sheets') {
+      itinerary = document.getElementById('sheet-content').value.trim();
+      if (!itinerary) {
+        showError('Please load a Google Sheet first.');
+        return;
+      }
+    } else {
+      itinerary = document.getElementById('paste-area').value.trim();
+      if (!itinerary) {
+        showError('Please paste your itinerary.');
+        return;
+      }
+    }
+
+    clearError();
+    setLoading(true);
+    hideResults();
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ itinerary })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Server error');
+      renderResults(data);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    hideResults();
+    document.getElementById('paste-area').value = '';
+    document.getElementById('sheet-content').value = '';
+    document.getElementById('sheets-url').value = '';
+    document.getElementById('sheet-preview').style.display = 'none';
+    document.getElementById('fetch-btn').textContent = 'Load sheet →';
+  });
+
+  // ── Render results ───────────────────────────────────────────────────────────
+  function renderResults(data) {
+    // Trip name
+    document.getElementById('trip-name').textContent = data.tripName || 'Itinerary Review';
+
+    // Verdict
+    document.getElementById('verdict-text').textContent = data.overall?.verdict || '';
+
+    // Strengths
+    const sl = document.getElementById('strengths-list');
+    sl.innerHTML = '';
+    (data.overall?.strengths || []).forEach(s => {
+      const li = document.createElement('li');
+      li.textContent = s;
+      sl.appendChild(li);
+    });
+
+    // Top changes
+    const cl = document.getElementById('changes-list');
+    cl.innerHTML = '';
+    (data.overall?.topChanges || []).forEach(c => {
+      const li = document.createElement('li');
+      li.textContent = c;
+      cl.appendChild(li);
+    });
+
+    // Summary bar — averages across days
+    const days = data.days || [];
+    const avgPace = avg(days.map(d => d.pace?.score));
+    const avgFlow = avg(days.map(d => d.flow?.score));
+    const avgBalance = avg(days.map(d => d.balance?.score));
+    const overloaded = days.filter(d => ['Busy','Overloaded'].includes(d.activityCount?.rating)).length;
+
+    document.getElementById('summary-bar').innerHTML = `
+      <div class="summary-pill">
+        <div class="sp-label">Days</div>
+        <div class="sp-val">${days.length}</div>
+        <div class="sp-sub">in itinerary</div>
+      </div>
+      <div class="summary-pill">
+        <div class="sp-label">Avg Pace</div>
+        <div class="sp-val">${avgPace}<span style="font-size:14px;color:var(--muted)">/5</span></div>
+        <div class="sp-sub">${paceLabel(avgPace)}</div>
+      </div>
+      <div class="summary-pill">
+        <div class="sp-label">Avg Flow</div>
+        <div class="sp-val">${avgFlow}<span style="font-size:14px;color:var(--muted)">/5</span></div>
+        <div class="sp-sub">${flowLabel(avgFlow)}</div>
+      </div>
+      <div class="summary-pill">
+        <div class="sp-label">Balance</div>
+        <div class="sp-val">${avgBalance}<span style="font-size:14px;color:var(--muted)">/5</span></div>
+        <div class="sp-sub">activity mix</div>
+      </div>
+      ${overloaded > 0 ? `
+      <div class="summary-pill" style="border-color:#FCA5A5; background:#FEF2F2;">
+        <div class="sp-label" style="color:var(--red)">Packed days</div>
+        <div class="sp-val" style="color:var(--red)">${overloaded}</div>
+        <div class="sp-sub" style="color:var(--red)">need trimming</div>
+      </div>` : ''}
+    `;
+
+    // Day cards
+    const container = document.getElementById('days-container');
+    container.innerHTML = '';
+
+    days.forEach((day, i) => {
+      const card = document.createElement('div');
+      card.className = 'card day-card';
+
+      const rating = day.activityCount?.rating || 'Ideal';
+      const badgeClass = {
+        'Light': 'badge-light',
+        'Ideal': 'badge-ideal',
+        'Busy': 'badge-busy',
+        'Overloaded': 'badge-overloaded'
+      }[rating] || 'badge-ideal';
+
+      card.innerHTML = `
+        <div class="day-header" id="dh-${i}">
+          <div class="day-title">${escHtml(day.day)}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="day-badges">
+              <span class="badge ${badgeClass}">${rating} · ${day.activityCount?.count ?? '?'} activities</span>
+              <span class="badge badge-pace">Pace ${day.pace?.score ?? '?'}/5</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+        </div>
+        <div class="day-body" id="db-${i}">
+          <div class="metrics-grid">
+            ${metricBox('Pace', day.pace?.score, day.pace?.note)}
+            ${metricBox('Flow', day.flow?.score, day.flow?.note)}
+            ${activityBox(day.activityCount)}
+            ${metricBox('Balance', day.balance?.score, day.balance?.note)}
+          </div>
+          ${suggestionsList(day.suggestions)}
+        </div>
+      `;
+
+      container.appendChild(card);
+
+      // Toggle
+      document.getElementById(`dh-${i}`).addEventListener('click', () => {
+        const header = document.getElementById(`dh-${i}`);
+        const body = document.getElementById(`db-${i}`);
+        header.classList.toggle('open');
+        body.classList.toggle('open');
+      });
+
+      // Open first card by default
+      if (i === 0) {
+        document.getElementById(`dh-0`).classList.add('open');
+        document.getElementById(`db-0`).classList.add('open');
+      }
+    });
+
+    document.getElementById('results').classList.add('visible');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function metricBox(name, score, note) {
+    const s = score ?? 0;
+    const stars = [1,2,3,4,5].map(n =>
+      `<span class="star ${n <= s ? 'filled' : 'empty'}">${n <= s ? '★' : '☆'}</span>`
+    ).join('');
+    return `
+      <div class="metric-box">
+        <div class="metric-name">${escHtml(name)}</div>
+        <div class="stars">${stars}</div>
+        <div class="metric-note">${escHtml(note || '')}</div>
+      </div>`;
+  }
+
+  function activityBox(ac) {
+    if (!ac) return metricBox('Activities', null, '');
+    const rating = ac.rating || 'Ideal';
+    const color = { Light: 'var(--sky)', Ideal: 'var(--green)', Busy: 'var(--yellow)', Overloaded: 'var(--red)' }[rating] || 'var(--green)';
+    return `
+      <div class="metric-box">
+        <div class="metric-name">Activity Count</div>
+        <div class="activity-count-val" style="color:${color}">${ac.count ?? '?'} <span style="font-size:13px;font-weight:500;color:var(--muted)">${rating}</span></div>
+        <div class="metric-note">${escHtml(ac.note || '')}</div>
+      </div>`;
+  }
+
+  function suggestionsList(suggestions) {
+    if (!suggestions || !suggestions.length) return '';
+    const items = suggestions.map(s => `<li>${escHtml(s)}</li>`).join('');
+    return `
+      <div class="suggestions-title">Suggestions</div>
+      <ul class="suggestions-list">${items}</ul>`;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function avg(arr) {
+    const valid = arr.filter(n => typeof n === 'number');
+    if (!valid.length) return '–';
+    return (valid.reduce((a,b) => a+b, 0) / valid.length).toFixed(1);
+  }
+  function paceLabel(v) { return v >= 4.5 ? 'Excellent' : v >= 3.5 ? 'Good' : v >= 2.5 ? 'Fair' : 'Rushed'; }
+  function flowLabel(v)  { return v >= 4.5 ? 'Excellent' : v >= 3.5 ? 'Good' : v >= 2.5 ? 'Fair' : 'Scattered'; }
+
+  function setLoading(on) {
+    const btn = document.getElementById('analyze-btn');
+    if (on) btn.classList.add('loading');
+    else btn.classList.remove('loading');
+    btn.disabled = on;
+  }
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+  function clearError() { document.getElementById('error-msg').classList.remove('visible'); }
+  function hideResults() { document.getElementById('results').classList.remove('visible'); }
+</script>
+</body>
+</html>
